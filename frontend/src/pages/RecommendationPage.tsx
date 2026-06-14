@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, RefreshCw, Settings, LogOut, Sparkles, Globe, Tag, X, ChevronDown } from 'lucide-react';
+import { Music, RefreshCw, Settings, LogOut, Sparkles, Globe, Tag, X, ChevronDown, Heart } from 'lucide-react';
 import { recommendationApi, authApi, preferencesApi, Recommendation, User, Preferences } from '../api';
 import RecommendationCard from '../components/RecommendationCard';
 import CountdownTimer from '../components/CountdownTimer';
@@ -18,12 +18,18 @@ const ALL_GENRES = [
   'Funk', 'Latin', 'World', 'Ambient', 'Dance', 'Alternative',
 ];
 
+const ALL_MOODS = [
+  'Romantic', 'Upbeat', 'Melancholic', 'Chill', 'Energetic', 'Nostalgic',
+  'Motivational', 'Dreamy', 'Dark', 'Happy', 'Heartbreak', 'Party',
+  'Late Night', 'Focus', 'Road Trip', 'Rainy Day',
+];
+
 interface Props {
   user: User | null;
 }
 
 type PageState = 'checking' | 'mood-picker' | 'loading' | 'ready' | 'error';
-type ModalType = 'language' | 'genre' | null;
+type ModalType = 'language' | 'genre' | 'mood' | null;
 
 export default function RecommendationPage({ user }: Props) {
   const navigate = useNavigate();
@@ -36,6 +42,7 @@ export default function RecommendationPage({ user }: Props) {
   // Mood picker selections — null means "pick for me"
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [openModal, setOpenModal] = useState<ModalType>(null);
 
   useEffect(() => {
@@ -65,17 +72,18 @@ export default function RecommendationPage({ user }: Props) {
     }
   }
 
-  function buildMood(lang: string | null, genre: string | null): string {
-    if (!lang && !genre) return 'surprise';
-    if (lang && !genre) return `${lang} music, any genre`;
-    if (!lang && genre) return `${genre} genre, any language`;
-    return `${lang} ${genre}`;
+  function buildMood(lang: string | null, genre: string | null, mood: string | null): string {
+    const parts: string[] = [];
+    if (lang) parts.push(`${lang} music`);
+    if (genre) parts.push(`${genre} genre`);
+    if (mood) parts.push(`${mood} mood`);
+    return parts.length > 0 ? parts.join(', ') : 'surprise';
   }
 
   async function handleDiscover() {
     setPageState('loading');
     setError('');
-    const mood = buildMood(selectedLanguage, selectedGenre);
+    const mood = buildMood(selectedLanguage, selectedGenre, selectedMood);
     try {
       const res = await recommendationApi.getNext(mood);
       setRecommendation(res.data);
@@ -100,6 +108,7 @@ export default function RecommendationPage({ user }: Props) {
   function goToMoodPicker() {
     setSelectedLanguage(null);
     setSelectedGenre(null);
+    setSelectedMood(null);
     setPageState('mood-picker');
   }
 
@@ -107,6 +116,9 @@ export default function RecommendationPage({ user }: Props) {
   const userGenres = preferences?.genres || [];
   const otherLanguages = ALL_LANGUAGES.filter(l => !userLanguages.includes(l));
   const otherGenres = ALL_GENRES.filter(g => !userGenres.includes(g));
+  // Show first 8 moods inline, rest in modal
+  const inlineMoods = ALL_MOODS.slice(0, 8);
+  const otherMoods = ALL_MOODS.slice(8);
 
   const languageOptions = userLanguages;
   const genreOptions = userGenres;
@@ -260,20 +272,69 @@ export default function RecommendationPage({ user }: Props) {
               </div>
             </div>
 
+            <div className="border-t border-white/10 my-5" />
+
+            {/* Mood / vibe selector */}
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Heart className="w-4 h-4 text-spotify-green" />
+                <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Vibe / Mood</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <button
+                  onClick={() => setSelectedMood(null)}
+                  className={`px-4 py-3 rounded-xl text-sm font-semibold border transition-all duration-150 text-left ${
+                    selectedMood === null
+                      ? 'bg-spotify-green text-black border-spotify-green'
+                      : 'bg-transparent text-gray-400 border-white/20 hover:border-white/40 hover:text-white'
+                  }`}
+                >
+                  <span className="block">Pick for me</span>
+                  <span className="block text-xs font-normal mt-0.5 opacity-70">Any vibe</span>
+                </button>
+
+                {inlineMoods.map(mood => (
+                  <button
+                    key={mood}
+                    onClick={() => setSelectedMood(mood)}
+                    className={`px-4 py-3 rounded-xl text-sm font-semibold border transition-all duration-150 text-left ${
+                      selectedMood === mood
+                        ? 'bg-spotify-green text-black border-spotify-green'
+                        : 'bg-spotify-gray text-white border-white/10 hover:border-spotify-green/50 hover:bg-white/10'
+                    }`}
+                  >
+                    {mood}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setOpenModal('mood')}
+                  className={`px-4 py-3 rounded-xl text-sm font-semibold border transition-all duration-150 text-left flex items-center justify-between ${
+                    selectedMood && !inlineMoods.includes(selectedMood)
+                      ? 'bg-spotify-green text-black border-spotify-green'
+                      : 'bg-transparent text-spotify-green border-spotify-green/40 hover:border-spotify-green hover:bg-spotify-green/10'
+                  }`}
+                >
+                  <span>
+                    {selectedMood && !inlineMoods.includes(selectedMood) ? selectedMood : 'Other...'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 opacity-70" />
+                </button>
+              </div>
+            </div>
+
             {/* Summary + discover button */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4 flex items-center gap-3">
-              <div className="flex-1 text-sm text-gray-300">
-                <span className="text-white font-semibold">
-                  {selectedLanguage ?? 'Any language'}
-                </span>
-                <span className="text-gray-500 mx-2">·</span>
-                <span className="text-white font-semibold">
-                  {selectedGenre ?? 'Any genre'}
-                </span>
+              <div className="flex-1 text-sm text-gray-300 flex flex-wrap gap-x-2 gap-y-1">
+                <span className="text-white font-semibold">{selectedLanguage ?? 'Any language'}</span>
+                <span className="text-gray-500">·</span>
+                <span className="text-white font-semibold">{selectedGenre ?? 'Any genre'}</span>
+                <span className="text-gray-500">·</span>
+                <span className="text-white font-semibold">{selectedMood ?? 'Any vibe'}</span>
               </div>
-              {(selectedLanguage || selectedGenre) && (
+              {(selectedLanguage || selectedGenre || selectedMood) && (
                 <button
-                  onClick={() => { setSelectedLanguage(null); setSelectedGenre(null); }}
+                  onClick={() => { setSelectedLanguage(null); setSelectedGenre(null); setSelectedMood(null); }}
                   className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   Clear
@@ -373,12 +434,11 @@ export default function RecommendationPage({ user }: Props) {
           >
             <div className="flex items-center justify-between p-5 border-b border-white/10">
               <div className="flex items-center gap-2">
-                {openModal === 'language'
-                  ? <Globe className="w-5 h-5 text-spotify-green" />
-                  : <Tag className="w-5 h-5 text-spotify-green" />
-                }
+                {openModal === 'language' ? <Globe className="w-5 h-5 text-spotify-green" />
+                  : openModal === 'genre' ? <Tag className="w-5 h-5 text-spotify-green" />
+                  : <Heart className="w-5 h-5 text-spotify-green" />}
                 <h2 className="text-white font-bold text-lg">
-                  {openModal === 'language' ? 'Pick a Language' : 'Pick a Genre'}
+                  {openModal === 'language' ? 'Pick a Language' : openModal === 'genre' ? 'Pick a Genre' : 'Pick a Vibe'}
                 </h2>
               </div>
               <button
@@ -390,12 +450,13 @@ export default function RecommendationPage({ user }: Props) {
             </div>
             <div className="overflow-y-auto p-5">
               <div className="grid grid-cols-2 gap-2">
-                {(openModal === 'language' ? otherLanguages : otherGenres).map(item => (
+                {(openModal === 'language' ? otherLanguages : openModal === 'genre' ? otherGenres : otherMoods).map(item => (
                   <button
                     key={item}
                     onClick={() => {
                       if (openModal === 'language') setSelectedLanguage(item);
-                      else setSelectedGenre(item);
+                      else if (openModal === 'genre') setSelectedGenre(item);
+                      else setSelectedMood(item);
                       setOpenModal(null);
                     }}
                     className="px-4 py-3 rounded-xl text-sm font-semibold bg-spotify-gray hover:bg-spotify-green hover:text-black text-white border border-white/10 hover:border-spotify-green transition-all duration-150 text-left"
