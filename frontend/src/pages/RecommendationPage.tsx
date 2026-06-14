@@ -109,6 +109,7 @@ export default function RecommendationPage({ user }: Props) {
         ) : recommendation ? (
           <>
             <RecommendationCard
+              key={recommendation.id}
               recommendation={recommendation}
               onFeedback={(feedback) => {
                 setRecommendation({ ...recommendation, feedback });
