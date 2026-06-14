@@ -6,7 +6,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
 
-export async function generateRecommendation(userId: number): Promise<any> {
+export async function generateRecommendation(userId: number, mood?: string): Promise<any> {
   const db = getDb();
 
   const prefs = db.prepare('SELECT languages, genres FROM preferences WHERE user_id = ?').get(userId) as any;
@@ -49,7 +49,10 @@ export async function generateRecommendation(userId: number): Promise<any> {
 
   const prompt = `You are a music archaeologist and underground music expert. Your mission is to surface songs the user has NEVER heard — deep cuts, overlooked artists, regional hits, cult classics, and underground gems. You have encyclopedic knowledge of global music from every era and corner of the world.
 
-User preferences:
+User's current mood / what they want right now:
+${mood && mood !== 'surprise' ? `- THE USER SPECIFICALLY WANTS: "${mood}" — prioritize this above all else` : '- Surprise me! Pick whatever you think is most exciting and unexpected'}
+
+User's saved preferences (for general taste reference):
 - Languages: ${languages.join(', ')}
 - Genres (optional preference): ${genres.length > 0 ? genres.join(', ') : 'None specified - explore everything'}
 

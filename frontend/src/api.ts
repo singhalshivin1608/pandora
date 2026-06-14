@@ -52,7 +52,7 @@ export const preferencesApi = {
 
 export const recommendationApi = {
   getToday: () => api.get<Recommendation>('/api/recommendation/today'),
-  submitFeedback: (id: number, feedback: 'liked' | 'disliked') =>
+  submitFeedback: (id: number, feedback: string) =>
     api.post(`/api/recommendation/${id}/feedback`, { feedback }),
-  getNext: () => api.post<Recommendation>('/api/recommendation/next'),
+  getNext: (mood?: string) => api.post<Recommendation>('/api/recommendation/next', { mood }),
 };

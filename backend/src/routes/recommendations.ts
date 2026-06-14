@@ -52,9 +52,10 @@ router.post('/:id/feedback', (req: Request, res: Response) => {
 
 router.post('/next', async (req: Request, res: Response) => {
   const userId = (req.session as any).userId;
+  const { mood } = req.body;
 
   try {
-    const rec = await generateRecommendation(userId);
+    const rec = await generateRecommendation(userId, mood);
     res.json(rec);
   } catch (err: any) {
     console.error('Error generating next recommendation:', err);
