@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, Globe, Tag, ChevronRight } from 'lucide-react';
 import { preferencesApi, User } from '../api';
@@ -27,6 +27,13 @@ export default function PreferencesPage({ user, onSaved }: Props) {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    preferencesApi.get().then(res => {
+      setSelectedLanguages(res.data.languages || []);
+      setSelectedGenres(res.data.genres || []);
+    }).catch(() => {});
+  }, []);
 
   function toggleItem(item: string, list: string[], setList: (l: string[]) => void) {
     if (list.includes(item)) {
