@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
-    "better-sqlite3": "^9.4.3",
+    "better-sqlite3": "^11.10.0",
     "connect-sqlite3": "^0.9.13",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
