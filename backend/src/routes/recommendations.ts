@@ -37,7 +37,7 @@ router.post('/:id/feedback', (req: Request, res: Response) => {
   const { id } = req.params;
   const { feedback } = req.body;
 
-  if (!['liked', 'disliked'].includes(feedback)) {
+  if (!['liked', 'disliked', 'heard'].includes(feedback)) {
     res.status(400).json({ error: 'Invalid feedback value' });
     return;
   }

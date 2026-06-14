@@ -32,40 +32,51 @@ export async function generateRecommendation(userId: number): Promise<any> {
   const liked = feedbackRows.filter(r => r.feedback === 'liked').map(r => `${r.track_name} by ${r.artist_name}`);
   const disliked = feedbackRows.filter(r => r.feedback === 'disliked').map(r => `${r.track_name} by ${r.artist_name}`);
 
+  const now24h = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+  const heardRows = db.prepare(`
+    SELECT track_name, artist_name, recommendation_json FROM recommendations
+    WHERE user_id = ? AND feedback = 'heard' AND generated_at > ?
+    ORDER BY generated_at DESC LIMIT 10
+  `).all(userId, now24h) as any[];
+  const heardRecently = heardRows.map(r => `${r.track_name} by ${r.artist_name}`);
+
   const recentRecs = db.prepare(`
     SELECT track_name, artist_name FROM recommendations
-    WHERE user_id = ? ORDER BY generated_at DESC LIMIT 10
+    WHERE user_id = ? ORDER BY generated_at DESC LIMIT 15
   `).all(userId) as any[];
 
   const recentRecsList = recentRecs.map(r => `${r.track_name} by ${r.artist_name}`);
 
-  const prompt = `You are a music recommendation expert with deep knowledge of global music across all genres and eras. Based on the user's listening history and preferences, recommend ONE song they would love.
+  const prompt = `You are a music archaeologist and underground music expert. Your mission is to surface songs the user has NEVER heard — deep cuts, overlooked artists, regional hits, cult classics, and underground gems. You have encyclopedic knowledge of global music from every era and corner of the world.
 
 User preferences:
 - Languages: ${languages.join(', ')}
-- Genres (optional preference): ${genres.length > 0 ? genres.join(', ') : 'None specified - be creative'}
+- Genres (optional preference): ${genres.length > 0 ? genres.join(', ') : 'None specified - explore everything'}
 
-Recently listened tracks (last 50):
+Recently listened tracks (for taste reference only — do NOT recommend these or similar mainstream hits):
 ${recentTracks.slice(0, 20).map(t => `- ${t.name} by ${t.artist}`).join('\n') || 'No recent history'}
 
-Top tracks (all time favorites):
+Top tracks (all time favorites — use for taste clues, avoid recommending similar-tier popular songs):
 ${topTracks.map(t => `- ${t.name} by ${t.artist} (Album: ${t.album})`).join('\n') || 'No top tracks data'}
 
 Previous recommendations feedback:
-- Liked: ${liked.length > 0 ? liked.join(', ') : 'None yet'}
+- Loved: ${liked.length > 0 ? liked.join(', ') : 'None yet'}
 - Disliked: ${disliked.length > 0 ? disliked.join(', ') : 'None yet'}
+- Already knew these (heard recently — avoid similar genres/styles for now): ${heardRecently.length > 0 ? heardRecently.join(', ') : 'None'}
 
-Recently recommended (avoid these): ${recentRecsList.length > 0 ? recentRecsList.join(', ') : 'None'}
+Avoid recommending any of these (already shown): ${recentRecsList.length > 0 ? recentRecsList.join(', ') : 'None'}
 
-Rules:
-1. Recommend a song NOT in the recently recommended list
-2. The song MUST be in one of the user's preferred languages: ${languages.join(', ')}
-3. If genres are specified, try to match them
-4. Reference a SPECIFIC song from their listening history to explain why you're recommending this
-5. The song MUST be available on Spotify
-6. Be diverse - don't always pick mainstream hits
-7. Consider hidden gems and trending tracks
-8. Return ONLY valid JSON, no other text, no markdown code blocks
+STRICT RULES:
+1. NEVER recommend songs the user already knows — if it's in their listening history, it's off limits
+2. NEVER recommend artists from the top 50 global Spotify charts or Billboard Hot 100 regulars
+3. NEVER recommend songs with over 500 million Spotify streams unless they are genuinely obscure in the user's region
+4. The song MUST be in one of the user's preferred languages: ${languages.join(', ')}
+5. If the user has heard songs recently, avoid that genre style for variety
+6. Prioritize: underground artists, regional stars unknown outside their home country, cult albums with small but devoted fanbases, forgotten hits from past decades, artists with under 1 million monthly Spotify listeners
+7. The song MUST be on Spotify
+8. Reference a SPECIFIC song from their listening history to explain the taste connection
+9. Return ONLY valid JSON, no other text, no markdown code blocks
+10. Think deeply — don't default to the first obvious answer. Ask yourself: "Would a casual music fan already know this?" If yes, pick something else.
 
 Return this exact JSON structure:
 {

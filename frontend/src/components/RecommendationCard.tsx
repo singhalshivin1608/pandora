@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ThumbsUp, ThumbsDown, ExternalLink, BookOpen, Lightbulb, TrendingUp, Gem } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ExternalLink, BookOpen, Lightbulb, TrendingUp, Gem, Headphones } from 'lucide-react';
 import { Recommendation, recommendationApi } from '../api';
 
 interface Props {
@@ -8,14 +8,14 @@ interface Props {
 }
 
 export default function RecommendationCard({ recommendation, onFeedback }: Props) {
-  const [feedbackSent, setFeedbackSent] = useState<'liked' | 'disliked' | null>(
+  const [feedbackSent, setFeedbackSent] = useState<'liked' | 'disliked' | 'heard' | null>(
     recommendation.feedback as any || null
   );
   const [submitting, setSubmitting] = useState(false);
 
   const rec = recommendation.recommendation_json;
 
-  async function handleFeedback(feedback: 'liked' | 'disliked') {
+  async function handleFeedback(feedback: 'liked' | 'disliked' | 'heard') {
     if (feedbackSent || submitting) return;
     setSubmitting(true);
     try {
@@ -132,6 +132,11 @@ export default function RecommendationCard({ recommendation, onFeedback }: Props
                   <ThumbsUp className="w-5 h-5" />
                   Liked! We'll find more like this.
                 </span>
+              ) : feedbackSent === 'heard' ? (
+                <span className="text-gray-400 font-semibold flex items-center justify-center gap-2">
+                  <Headphones className="w-5 h-5" />
+                  Got it! Finding something you haven't heard...
+                </span>
               ) : (
                 <span className="text-gray-400 font-semibold flex items-center justify-center gap-2">
                   <ThumbsDown className="w-5 h-5" />
@@ -140,22 +145,32 @@ export default function RecommendationCard({ recommendation, onFeedback }: Props
               )}
             </div>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleFeedback('liked')}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 bg-spotify-green/10 hover:bg-spotify-green/20 text-spotify-green border border-spotify-green/30 font-semibold py-3 rounded-xl transition-all duration-150"
+                >
+                  <ThumbsUp className="w-5 h-5" />
+                  Love it!
+                </button>
+                <button
+                  onClick={() => handleFeedback('disliked')}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-semibold py-3 rounded-xl transition-all duration-150"
+                >
+                  <ThumbsDown className="w-5 h-5" />
+                  Not for me
+                </button>
+              </div>
               <button
-                onClick={() => handleFeedback('liked')}
+                onClick={() => handleFeedback('heard')}
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-spotify-green/10 hover:bg-spotify-green/20 text-spotify-green border border-spotify-green/30 font-semibold py-3 rounded-xl transition-all duration-150"
+                className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10 font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm"
               >
-                <ThumbsUp className="w-5 h-5" />
-                Love it!
-              </button>
-              <button
-                onClick={() => handleFeedback('disliked')}
-                disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-semibold py-3 rounded-xl transition-all duration-150"
-              >
-                <ThumbsDown className="w-5 h-5" />
-                Not for me
+                <Headphones className="w-4 h-4" />
+                Already know this song — show me something new
               </button>
             </div>
           )}

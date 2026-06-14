@@ -113,6 +113,9 @@ export default function RecommendationPage({ user }: Props) {
               recommendation={recommendation}
               onFeedback={(feedback) => {
                 setRecommendation({ ...recommendation, feedback });
+                if (feedback === 'heard') {
+                  setTimeout(() => handleNext(), 1500);
+                }
               }}
             />
 
