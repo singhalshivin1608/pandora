@@ -114,7 +114,7 @@ Return this exact JSON structure:
     throw new Error('Failed to parse AI recommendation');
   }
 
-  const trackInfo = await searchTrack(userId, claudeResponse.spotify_search_query);
+  const trackInfo = await searchTrack(userId, claudeResponse.spotify_search_query, claudeResponse.track_name, claudeResponse.artist_name);
 
   const now = Math.floor(Date.now() / 1000);
   const validUntil = now + 24 * 60 * 60;

@@ -58,8 +58,37 @@ export async function getRecentlyPlayed(userId: number): Promise<any[]> {
   }));
 }
 
-export async function searchTrack(userId: number, query: string): Promise<any | null> {
+export async function searchTrack(userId: number, query: string, trackName?: string, artistName?: string): Promise<any | null> {
   const api = await getSpotifyApiForUser(userId);
+
+  // Try exact field search first for better accuracy
+  if (trackName && artistName) {
+    const exactQuery = `track:${trackName} artist:${artistName}`;
+    const exactResult = await api.searchTracks(exactQuery, { limit: 5 });
+    const exactTracks = exactResult.body.tracks?.items;
+    if (exactTracks && exactTracks.length > 0) {
+      // Pick the result whose names most closely match
+      const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const targetTrack = normalise(trackName);
+      const targetArtist = normalise(artistName);
+      const best = exactTracks.find(t =>
+        normalise(t.name).includes(targetTrack) &&
+        t.artists.some((a: any) => normalise(a.name).includes(targetArtist) || targetArtist.includes(normalise(a.name)))
+      ) || exactTracks[0];
+
+      return {
+        spotify_track_id: best.id,
+        track_name: best.name,
+        artist_name: best.artists.map((a: any) => a.name).join(', '),
+        album_name: best.album.name,
+        spotify_url: best.external_urls.spotify,
+        preview_url: best.preview_url || null,
+        album_art_url: best.album.images[0]?.url || null,
+      };
+    }
+  }
+
+  // Fallback to general query
   const result = await api.searchTracks(query, { limit: 1 });
   const tracks = result.body.tracks?.items;
   if (!tracks || tracks.length === 0) return null;
